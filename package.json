@@ -8,6 +8,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "db:init": "tsx src/seed/init-db.ts",
+    "db:reset": "tsx src/seed/init-db.ts --reset",
     "seed": "tsx src/seed/subjects.seed.ts",
     "seed:areas": "tsx src/seed/areas.seed.ts"
   },

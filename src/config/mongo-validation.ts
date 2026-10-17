@@ -1,7 +1,10 @@
 import mongoose from 'mongoose';
+import { env } from './env.js';
 
-async function applyMongoValidation() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/eduportalangular');
+export async function applyMongoValidation(): Promise<void> {
+  if (mongoose.connection.readyState !== 1) {
+    await mongoose.connect(env.MONGODB_URI);
+  }
   const db = mongoose.connection.db;
 
   const collections = await db?.listCollections().toArray();
@@ -491,12 +494,17 @@ async function applyMongoValidation() {
     validationAction: 'error'
   });
 
-  console.log('✅ Validadores de areas, subjects, levels, grades, sections, classrooms, rules, academic_years, grade_sections y grade_subjects registrados en MongoDB');
-  await mongoose.disconnect();
-  process.exit(0);
+  console.log('✅ Validadores $jsonSchema aplicados en las 10 colecciones de MongoDB');
 }
 
-applyMongoValidation().catch(err => {
-  console.error('Error aplicando validación:', err);
-  process.exit(1);
-});
+if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('mongo-validation.ts')) {
+  applyMongoValidation()
+    .then(async () => {
+      await mongoose.disconnect();
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('Error aplicando validación:', err);
+      process.exit(1);
+    });
+}

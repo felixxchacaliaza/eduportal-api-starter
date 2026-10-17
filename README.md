@@ -2,6 +2,18 @@
 
 Base de datos: **`eduportalangular`** en MongoDB (`mongodb://127.0.0.1:27017/eduportalangular`).
 
+## 🛠️ Comandos de Base de Datos (Creación y Valores por Defecto)
+
+- **Crear / Inicializar la base de datos (sin borrar datos existentes):**
+  ```bash
+  npm run db:init
+  ```
+- **Reiniciar desde cero con todos los valores por defecto:**
+  ```bash
+  npm run db:reset
+  ```
+*(Ambos comandos crean las 10 colecciones, aplican los validadores `$jsonSchema`, sincronizan los índices únicos/compuestos y siembran los datos iniciales en orden jerárquico).*
+
 ---
 
 ## 📋 1. Modelos de Datos Actualizados
