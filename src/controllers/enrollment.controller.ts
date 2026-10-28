@@ -67,9 +67,29 @@ export class EnrollmentController {
         return;
       }
 
-      const enrollment = await EnrollmentModel.create(req.body);
+      // 1. Generar código correlativo de matrícula MAT-XXX si no se especificó
+      let code = req.body.code;
+      if (!code) {
+        const count = await EnrollmentModel.countDocuments();
+        code = `MAT-${String(count + 1).padStart(3, '0')}`;
+      }
 
-      // Incrementar alumnos matriculados
+      // 2. Normalizar status a los valores del enum (MATRICULADO, TRASLADADO, RETIRADO)
+      const validStatuses = ['MATRICULADO', 'TRASLADADO', 'RETIRADO'];
+      const status = validStatuses.includes(req.body.status) ? req.body.status : 'MATRICULADO';
+
+      // 3. Normalizar enrollmentType (REGULAR, INGRESANTE, TRASLADO)
+      const validTypes = ['REGULAR', 'INGRESANTE', 'TRASLADO'];
+      const enrollmentType = validTypes.includes(req.body.enrollmentType) ? req.body.enrollmentType : 'REGULAR';
+
+      const enrollment = await EnrollmentModel.create({
+        ...req.body,
+        code,
+        status,
+        enrollmentType
+      });
+
+      // Incrementar alumnos matriculados en la sección
       section.enrolledStudents += 1;
       await section.save();
 
