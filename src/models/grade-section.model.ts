@@ -10,6 +10,7 @@ export interface IGradeSection extends Document {
   shift: string;
   maxCapacity: number;
   enrolledStudents: number;
+  tutor?: Types.ObjectId;
   enabled: boolean;
 }
 
@@ -64,6 +65,12 @@ const GradeSectionSchema = new Schema<IGradeSection>(
       type: Number,
       default: 0,
       min: [0, 'El número de alumnos matriculados no puede ser negativo']
+    },
+    tutor: {
+      type: Schema.Types.ObjectId,
+      ref: 'Teacher',
+      required: false,
+      default: null
     },
     enabled: {
       type: Boolean,
