@@ -11,7 +11,10 @@
     "db:init": "tsx src/seed/init-db.ts",
     "db:reset": "tsx src/seed/init-db.ts --reset",
     "seed": "tsx src/seed/subjects.seed.ts",
-    "seed:areas": "tsx src/seed/areas.seed.ts"
+    "seed:areas": "tsx src/seed/areas.seed.ts",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:unit": "tsx --test tests/backend-acceptance-criteria.test.ts",
+    "test:e2e": "tsx --test tests/e2e-http.test.ts"
   },
   "keywords": [
     "express",

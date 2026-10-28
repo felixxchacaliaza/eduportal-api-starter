@@ -265,9 +265,48 @@ Base de datos: **`eduportalangular`** en MongoDB (`mongodb://127.0.0.1:27017/edu
 
 ---
 
+## 📡 12. Nuevos Endpoints Operativos, Seguridad y Personas (25 Colecciones)
+
+### 🔐 Seguridad & Auth JWT
+| Método | Endpoint | Descripción | Body / Parámetros |
+| :---: | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Login con credenciales | `{ "email": "root@eduportal.edu.pe", "password": "..." }` |
+| `GET` | `/api/auth/me` | Retorna usuario autenticado y árbol dinámico `menuTree` | Bearer Token en header `Authorization` |
+| `CRUD` | `/api/menus` | Opciones y árbol de navegación dinámica | - |
+| `CRUD` | `/api/profiles` | Perfiles y permisos RBAC | - |
+| `CRUD` | `/api/users` | Cuentas de usuario institucionales | - |
+
+### 👥 Padrón Civil & Actores
+| Método | Endpoint | Descripción |
+| :---: | :--- | :--- |
+| `CRUD` | `/api/persons` | Padrón civil universal (DNI único de 8 dígitos) |
+| `CRUD` | `/api/positions` | Catálogo de cargos institucionales |
+| `CRUD` | `/api/workers` | Trabajadores y personal administrativo |
+| `CRUD` | `/api/teachers` | Plana docente con área curricular vinculada |
+| `CRUD` | `/api/students` | Alumnos con apoderados vinculados |
+
+### 🎓 Operación Escolar & Transacciones
+| Método | Endpoint | Descripción |
+| :---: | :--- | :--- |
+| `CRUD` | `/api/enrollments` | Matrículas con validación de vacantes y aforo |
+| `CRUD` | `/api/teacher-assignments` | Asignación de docente a salón y materia |
+| `CRUD` | `/api/schedules` | Horarios semanales por salón |
+| `CRUD` | `/api/evaluations` | Notas vigesimales por periodos lectivos |
+| `CRUD` | `/api/attendances` | Asistencias diarias de estudiantes |
+| `CRUD` | `/api/incidents` | Registro disciplinario e incidencias |
+| `CRUD` | `/api/tuition-payments` | Cuotas y pagos de matrículas y pensiones |
+
+---
+
 ## ⚡ Comandos
 
 ```bash
 # Iniciar servidor en modo desarrollo
 npm run dev
+
+# Ejecutar comprobación de tipos
+npx tsc --noEmit
+
+# Ejecutar suite de pruebas de criterios de aceptación (TDD)
+npx tsx --test tests/backend-acceptance-criteria.test.ts
 ```

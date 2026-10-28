@@ -11,6 +11,22 @@ import { ruleRoutes } from './routes/rule.routes.js';
 import { academicYearRoutes } from './routes/academic-year.routes.js';
 import { gradeSectionRoutes } from './routes/grade-section.routes.js';
 import { gradeSubjectRoutes } from './routes/grade-subject.routes.js';
+import { authRoutes } from './routes/auth.routes.js';
+import { personRoutes } from './routes/person.routes.js';
+import { positionRoutes } from './routes/position.routes.js';
+import { workerRoutes } from './routes/worker.routes.js';
+import { teacherRoutes } from './routes/teacher.routes.js';
+import { studentRoutes } from './routes/student.routes.js';
+import { menuRoutes } from './routes/menu.routes.js';
+import { profileRoutes } from './routes/profile.routes.js';
+import { userRoutes } from './routes/user.routes.js';
+import { enrollmentRoutes } from './routes/enrollment.routes.js';
+import { teacherAssignmentRoutes } from './routes/teacher-assignment.routes.js';
+import { scheduleRoutes } from './routes/schedule.routes.js';
+import { evaluationRoutes } from './routes/evaluation.routes.js';
+import { attendanceRoutes } from './routes/attendance.routes.js';
+import { incidentRoutes } from './routes/incident.routes.js';
+import { tuitionPaymentRoutes } from './routes/tuition-payment.routes.js';
 
 export const app: Application = express();
 
@@ -58,6 +74,24 @@ app.use('/api/rules', ruleRoutes);
 app.use('/api/academic-years', academicYearRoutes);
 app.use('/api/grade-sections', gradeSectionRoutes);
 app.use('/api/grade-subjects', gradeSubjectRoutes);
+
+// Nuevas 16 rutas para completar las 25 colecciones y seguridad
+app.use('/api/auth', authRoutes);
+app.use('/api/persons', personRoutes);
+app.use('/api/positions', positionRoutes);
+app.use('/api/workers', workerRoutes);
+app.use('/api/teachers', teacherRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/menus', menuRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/teacher-assignments', teacherAssignmentRoutes);
+app.use('/api/schedules', scheduleRoutes);
+app.use('/api/evaluations', evaluationRoutes);
+app.use('/api/attendances', attendanceRoutes);
+app.use('/api/incidents', incidentRoutes);
+app.use('/api/tuition-payments', tuitionPaymentRoutes);
 
 // Manejador 404
 app.use((req: Request, res: Response) => {
