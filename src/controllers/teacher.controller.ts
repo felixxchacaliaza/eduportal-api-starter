@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { TeacherModel } from '../models/teacher.model.js';
 import { StudentModel } from '../models/student.model.js';
+import { PersonModel } from '../models/person.model.js';
+import { AreaModel } from '../models/area.model.js';
 
 export class TeacherController {
   static async getAll(req: Request, res: Response): Promise<void> {
@@ -30,7 +32,28 @@ export class TeacherController {
 
   static async create(req: Request, res: Response): Promise<void> {
     try {
-      const { person } = req.body;
+      let { person, area, academicDegree, contractedHours, code, enabled } = req.body;
+
+      if (!person && req.body.dni) {
+        let p = await PersonModel.findOne({ dni: String(req.body.dni).trim() });
+        if (!p) {
+          const personCount = await PersonModel.countDocuments();
+          const nextPersonCode = `PER-${String(personCount + 1).padStart(3, '0')}`;
+          p = await PersonModel.create({
+            code: nextPersonCode,
+            dni: String(req.body.dni).trim(),
+            firstName: String(req.body.firstName).trim(),
+            lastName: String(req.body.lastName).trim(),
+            gender: req.body.gender || 'M',
+            personalEmail: req.body.personalEmail ? String(req.body.personalEmail).trim() : `${req.body.dni}@eduportal.pe`,
+            phone: req.body.phone ? String(req.body.phone).trim() : '',
+            address: req.body.address ? String(req.body.address).trim() : '',
+            enabled: true
+          });
+        }
+        person = p._id;
+      }
+
       const isStudent = await StudentModel.findOne({ person, enabled: true });
       if (isStudent) {
         res.status(400).json({
@@ -40,7 +63,24 @@ export class TeacherController {
         return;
       }
 
-      const data = await TeacherModel.create(req.body);
+      if (!area) {
+        const defaultArea = await AreaModel.findOne();
+        if (defaultArea) area = defaultArea._id;
+      }
+
+      if (!code) {
+        const teacherCount = await TeacherModel.countDocuments();
+        code = `TEA-${String(teacherCount + 1).padStart(3, '0')}`;
+      }
+
+      const data = await TeacherModel.create({
+        code,
+        person,
+        area,
+        academicDegree: academicDegree || 'LICENCIADO',
+        contractedHours: contractedHours ? Number(contractedHours) : 30,
+        enabled: enabled !== undefined ? enabled : true
+      });
       const populated = await TeacherModel.findById(data.id).populate('person').populate('area');
       res.status(201).json({ success: true, message: 'Docente registrado', data: populated });
     } catch (err: any) {

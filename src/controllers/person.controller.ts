@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PersonModel } from '../models/person.model.js';
+import { StudentModel } from '../models/student.model.js';
 
 export class PersonController {
   static async getAll(req: Request, res: Response): Promise<void> {
@@ -39,9 +40,15 @@ export class PersonController {
     try {
       const { dni } = req.params;
       const person = await PersonModel.findOne({ dni });
+      let isStudent = false;
+      if (person) {
+        const student = await StudentModel.findOne({ person: person._id, enabled: true });
+        isStudent = !!student;
+      }
       res.status(200).json({
         success: true,
         exists: !!person,
+        isStudent,
         data: person || null
       });
     } catch (err: any) {
