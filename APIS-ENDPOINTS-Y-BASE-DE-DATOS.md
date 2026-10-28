@@ -59,7 +59,146 @@ Todas las respuestas de la API devuelven una estructura consistente tipo Envelop
 
 ---
 
-## 🔐 2. Credenciales Maestras Sembradas para Pruebas
+## 🗺️ 2. Diagramas Visuales del Sistema y Base de Datos
+
+### 2.1 Diagrama Entidad-Relación Global (ERD de las 25 Colecciones)
+
+El siguiente diagrama detalla cómo interactúan las 25 colecciones mediante relaciones foráneas `ObjectId`:
+
+```mermaid
+erDiagram
+    %% BLOQUE B: PADRÓN CIVIL
+    PERSONS ||--o| WORKERS : "es personal"
+    PERSONS ||--o| TEACHERS : "es docente"
+    PERSONS ||--o| STUDENTS : "es estudiante"
+    PERSONS ||--o{ USERS : "tiene cuenta"
+    PERSONS ||--o{ STUDENTS : "es apoderado de"
+    POSITIONS ||--o{ WORKERS : "asigna cargo"
+
+    %% BLOQUE A: ESTRUCTURA BASE
+    LEVELS ||--o{ GRADES : "contiene"
+    GRADES ||--o{ GRADE_SECTIONS : "apertura"
+    SECTIONS ||--o{ GRADE_SECTIONS : "divide"
+    CLASSROOMS ||--o{ GRADE_SECTIONS : "aloja fisicamente"
+    ACADEMIC_YEARS ||--o{ GRADE_SECTIONS : "rige anualmente"
+    AREAS ||--o{ SUBJECTS : "agrupa"
+    AREAS ||--o{ TEACHERS : "especialidad"
+    GRADES ||--o{ GRADE_SUBJECTS : "malla curricular"
+    SUBJECTS ||--o{ GRADE_SUBJECTS : "asignatura"
+    ACADEMIC_YEARS ||--o{ GRADE_SUBJECTS : "vigencia"
+
+    %% BLOQUE C: SEGURIDAD
+    PROFILES ||--o{ USERS : "rol"
+    MENUS ||--o{ MENUS : "submenú padre"
+    PROFILES ||--o{ MENUS : "permisos RBAC"
+
+    %% BLOQUE D: OPERACIÓN Y TRANSACCIONES
+    GRADE_SECTIONS ||--o{ ENROLLMENTS : "matricula en"
+    STUDENTS ||--o{ ENROLLMENTS : "se matricula"
+    ACADEMIC_YEARS ||--o{ ENROLLMENTS : "periodo"
+
+    TEACHERS ||--o{ TEACHER_ASSIGNMENTS : "dicta"
+    GRADE_SECTIONS ||--o{ TEACHER_ASSIGNMENTS : "en aula"
+    SUBJECTS ||--o{ TEACHER_ASSIGNMENTS : "materia"
+
+    TEACHERS ||--o{ SCHEDULES : "horario"
+    GRADE_SECTIONS ||--o{ SCHEDULES : "horario de aula"
+    SUBJECTS ||--o{ SCHEDULES : "asignatura"
+
+    STUDENTS ||--o{ EVALUATIONS : "calificado"
+    GRADE_SECTIONS ||--o{ EVALUATIONS : "en salon"
+    SUBJECTS ||--o{ EVALUATIONS : "en materia"
+    TEACHERS ||--o{ EVALUATIONS : "evaluador"
+
+    STUDENTS ||--o{ ATTENDANCES : "asiste"
+    GRADE_SECTIONS ||--o{ ATTENDANCES : "salon"
+    PERSONS ||--o{ ATTENDANCES : "registrador"
+
+    STUDENTS ||--o{ INCIDENTS : "reportado"
+    PERSONS ||--o{ INCIDENTS : "reporta"
+
+    STUDENTS ||--o{ TUITION_PAYMENTS : "responsable pago"
+```
+
+---
+
+### 2.2 Diagrama de Arquitectura de Capas y Flujo HTTP (Fullstack)
+
+Muestra el viaje completo de una petición desde los componentes Angular 22 hasta MongoDB:
+
+```mermaid
+flowchart TD
+    subgraph Frontend["Frontend: Angular 22 Zoneless (eduportal-web)"]
+        UI["Componentes UI (Signals + Standalone)"]
+        Presenter["Presenter Pattern (Estado local)"]
+        Service["Servicios Angular (HttpClient + firstValueFrom)"]
+        AuthInterceptor["Auth Interceptor (JWT Bearer Token)"]
+        UI --> Presenter --> Service --> AuthInterceptor
+    end
+
+    subgraph API["Backend API REST: Node.js + Express (eduportal-api-starter)"]
+        CORS["CORS Middleware"]
+        Router["Express Routers (/api/...)"]
+        AuthCtrl["Auth Controller (JWT + Bcrypt)"]
+        CrudCtrl["Controllers (15 CRUDs + Operaciones)"]
+        AuthInterceptor -->|"HTTP Request"| CORS --> Router
+        Router -->|"POST /login, GET /me"| AuthCtrl
+        Router -->|"CRUD REST"| CrudCtrl
+    end
+
+    subgraph DB["Base de Datos: MongoDB (eduportalangular)"]
+        Mongo["Motor MongoDB (25 Colecciones)"]
+        Mongoose["Mongoose Schemas (Validación $jsonSchema e Índices)"]
+        AuthCtrl --> Mongoose
+        CrudCtrl --> Mongoose
+        Mongoose --> Mongo
+    end
+```
+
+---
+
+### 2.3 Diagrama del Ciclo de Vida Escolar (Flujo Operativo de Negocio)
+
+Representa la dependencia lógica y cronológica para operar el sistema institucional:
+
+```mermaid
+flowchart LR
+    A["1. Apertura Año Lectivo (academic_years)"] --> B["2. Salones y Malla (grade_sections & grade_subjects)"]
+    B --> C["3. Padrón y Apoderados (persons & students)"]
+    C --> D["4. Matrícula y Aforo (enrollments)"]
+    B --> E["5. Plana y Carga (teachers & teacher_assignments)"]
+    E --> F["6. Horarios Semanales (schedules)"]
+    D --> G["7. Operación Escolar Diaria"]
+    F --> G
+    subgraph Operacion["Operación en Tiempo Real"]
+        G --> H["Asistencia (attendances)"]
+        G --> I["Calificaciones (evaluations)"]
+        G --> J["Incidencias (incidents)"]
+        G --> K["Pensiones (tuition_payments)"]
+    end
+```
+
+---
+
+### 2.4 Diagrama de Autenticación y Construcción del Menú Dinámico RBAC
+
+Muestra cómo el backend genera el árbol de navegación para el frontend según el rol:
+
+```mermaid
+flowchart TD
+    User["Usuario Institucional (users)"] --> Profile["Perfil Asignado (profiles)"]
+    Profile --> Super{"¿isSuperAdmin?"}
+    Super -- "SÍ (Super Usuario)" --> AllMenus["Acceso al 100% de Menús (18 menús) con FULL access"]
+    Super -- "NO (Director / Docente)" --> PermMatrix["Matriz de Permisos (profile.permissions)"]
+    PermMatrix --> FilteredMenus["Menús Filtrados según accessLevel (FULL / READ_ONLY)"]
+    AllMenus --> TreeGen["Construcción Jerárquica del Árbol (menuTree)"]
+    FilteredMenus --> TreeGen
+    TreeGen --> Sidebar["Sidebar Dinámico en Frontend Angular"]
+```
+
+---
+
+## 🔐 3. Credenciales Maestras Sembradas para Pruebas
 
 | Rol / Perfil | Email | Contraseña | Permisos y Capacidades |
 | :--- | :--- | :--- | :--- |
@@ -69,7 +208,7 @@ Todas las respuestas de la API devuelven una estructura consistente tipo Envelop
 
 ---
 
-## 🗄️ 3. Diccionario de Datos: Las 25 Colecciones MongoDB
+## 🗄️ 4. Diccionario de Datos: Las 25 Colecciones MongoDB
 
 ### Bloque A: Estructura Académica Base (10 Colecciones)
 
@@ -403,7 +542,7 @@ Todas las respuestas de la API devuelven una estructura consistente tipo Envelop
 
 ---
 
-## 📡 4. Catálogo Exhaustivo de Endpoints REST
+## 📡 5. Catálogo Exhaustivo de Endpoints REST
 
 ### 🔑 Módulo 0: Autenticación & Menú Dinámico (`/api/auth`)
 
@@ -629,7 +768,7 @@ Todas las respuestas de la API devuelven una estructura consistente tipo Envelop
 
 ---
 
-## 💻 5. Guía de Consumo desde el Frontend Angular 22
+## 💻 6. Guía de Consumo desde el Frontend Angular 22
 
 ### 5.1 Servicio Base HTTP en Angular 22
 Al consumir cualquier endpoint desde Angular 22, inyecta `HttpClient` y tipa la respuesta utilizando las interfaces y el envelope `{ success: true, data: T }`:
