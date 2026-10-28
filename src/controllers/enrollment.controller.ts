@@ -129,4 +129,76 @@ export class EnrollmentController {
       res.status(400).json({ success: false, message: err.message });
     }
   }
+
+  static async changeSection(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { gradeSection: newSectionId } = req.body;
+
+      if (!newSectionId) {
+        res.status(400).json({ success: false, message: 'La nueva sección es obligatoria' });
+        return;
+      }
+
+      const enrollment = await EnrollmentModel.findById(id);
+      if (!enrollment) {
+        res.status(404).json({ success: false, message: 'Matrícula no encontrada' });
+        return;
+      }
+
+      if (String(enrollment.gradeSection) === String(newSectionId)) {
+        res.status(400).json({
+          success: false,
+          message: 'El estudiante ya se encuentra matriculado en esta sección'
+        });
+        return;
+      }
+
+      const newSection = await GradeSectionModel.findById(newSectionId);
+      if (!newSection) {
+        res.status(404).json({ success: false, message: 'La nueva sección no existe' });
+        return;
+      }
+
+      if (newSection.enrolledStudents >= newSection.maxCapacity) {
+        res.status(400).json({
+          success: false,
+          message: `Salón sin vacantes: Aforo cubierto (${newSection.enrolledStudents}/${newSection.maxCapacity})`
+        });
+        return;
+      }
+
+      // Decrementar aforo en la sección anterior
+      const oldSection = await GradeSectionModel.findById(enrollment.gradeSection);
+      if (oldSection) {
+        oldSection.enrolledStudents = Math.max(0, oldSection.enrolledStudents - 1);
+        await oldSection.save();
+      }
+
+      // Incrementar aforo en la nueva sección
+      newSection.enrolledStudents += 1;
+      await newSection.save();
+
+      enrollment.gradeSection = newSectionId;
+      await enrollment.save();
+
+      const populated = await EnrollmentModel.findById(enrollment._id)
+        .populate({
+          path: 'student',
+          populate: { path: 'person' }
+        })
+        .populate({
+          path: 'gradeSection',
+          populate: ['grade', 'section', 'classroom', 'tutor']
+        });
+
+      res.status(200).json({
+        success: true,
+        message: 'Sección actualizada exitosamente',
+        data: populated
+      });
+    } catch (err: any) {
+      res.status(400).json({ success: false, message: err.message });
+    }
+  }
 }

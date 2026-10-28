@@ -7,3 +7,4 @@ enrollmentRoutes.get('/', EnrollmentController.getAll);
 enrollmentRoutes.get('/by-section/:sectionId', EnrollmentController.getBySection);
 enrollmentRoutes.post('/', EnrollmentController.create);
 enrollmentRoutes.patch('/:id/status', EnrollmentController.updateStatus);
+enrollmentRoutes.patch('/:id/section', EnrollmentController.changeSection);

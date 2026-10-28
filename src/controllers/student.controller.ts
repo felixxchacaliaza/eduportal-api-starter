@@ -3,11 +3,12 @@ import { StudentModel } from '../models/student.model.js';
 import { PersonModel } from '../models/person.model.js';
 import { WorkerModel } from '../models/worker.model.js';
 import { TeacherModel } from '../models/teacher.model.js';
+import { EnrollmentModel } from '../models/enrollment.model.js';
 
 export class StudentController {
   static async getAll(req: Request, res: Response): Promise<void> {
     try {
-      const { search, enabled } = req.query;
+      const { search, enabled, academicYear } = req.query;
       const data = await StudentModel.find()
         .populate('person')
         .populate('guardians.person')
@@ -31,7 +32,29 @@ export class StudentController {
         });
       }
 
-      res.status(200).json({ success: true, count: filtered.length, data: filtered });
+      let mappedData: any[] = filtered.map((s: any) => (s.toJSON ? s.toJSON() : s));
+      if (academicYear) {
+        const enrollments = await EnrollmentModel.find({
+          academicYear: String(academicYear),
+          status: 'MATRICULADO'
+        }).populate({
+          path: 'gradeSection',
+          populate: ['grade', 'section']
+        });
+
+        const enrollmentMap = new Map<string, any>();
+        for (const e of enrollments) {
+          const studentId = String(e.student?._id || e.student);
+          enrollmentMap.set(studentId, e);
+        }
+
+        mappedData = mappedData.map(s => ({
+          ...s,
+          currentEnrollment: enrollmentMap.get(String(s.id || s._id)) || null
+        }));
+      }
+
+      res.status(200).json({ success: true, count: mappedData.length, data: mappedData });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
     }
