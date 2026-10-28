@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { StudentModel } from '../models/student.model.js';
+import { PersonModel } from '../models/person.model.js';
 import { WorkerModel } from '../models/worker.model.js';
 import { TeacherModel } from '../models/teacher.model.js';
 
@@ -53,7 +54,36 @@ export class StudentController {
 
   static async create(req: Request, res: Response): Promise<void> {
     try {
-      const { person, guardians } = req.body;
+      let { person, guardians, code, entryYear, enabled } = req.body;
+
+      // 1. Resolver o crear la Persona del Alumno si se enviaron datos civiles directos (DNI, nombres, etc.)
+      if (!person && req.body.dni) {
+        let p = await PersonModel.findOne({ dni: String(req.body.dni).trim() });
+        if (!p) {
+          const personCount = await PersonModel.countDocuments();
+          const nextPersonCode = `PER-${String(personCount + 1).padStart(3, '0')}`;
+          p = await PersonModel.create({
+            code: nextPersonCode,
+            dni: String(req.body.dni).trim(),
+            firstName: String(req.body.firstName).trim(),
+            lastName: String(req.body.lastName).trim(),
+            gender: req.body.gender || 'M',
+            personalEmail: String(req.body.personalEmail).trim(),
+            phone: req.body.phone ? String(req.body.phone).trim() : '',
+            address: req.body.address ? String(req.body.address).trim() : '',
+            enabled: true
+          });
+        }
+        person = p._id;
+      }
+
+      if (!person) {
+        res.status(400).json({
+          success: false,
+          message: 'La persona vinculada o los datos civiles del estudiante son obligatorios'
+        });
+        return;
+      }
 
       // RN-ACT-01: No puede ser personal ni docente
       const isWorker = await WorkerModel.findOne({ person, enabled: true });
@@ -66,21 +96,67 @@ export class StudentController {
         return;
       }
 
-      // RN-ACT-02: Validar apoderados
+      // 2. Resolver o crear la Persona para cada Apoderado y validar que no sea el mismo alumno
+      const resolvedGuardians: any[] = [];
       if (Array.isArray(guardians)) {
         for (const g of guardians) {
-          if (String(g.person) === String(person)) {
+          let guardianPersonId = g.person;
+          if (!guardianPersonId && g.dni) {
+            let gp = await PersonModel.findOne({ dni: String(g.dni).trim() });
+            if (!gp) {
+              const personCount = await PersonModel.countDocuments();
+              const nextPersonCode = `PER-${String(personCount + 1).padStart(3, '0')}`;
+              gp = await PersonModel.create({
+                code: nextPersonCode,
+                dni: String(g.dni).trim(),
+                firstName: String(g.firstName).trim(),
+                lastName: String(g.lastName).trim(),
+                gender: g.gender || 'M',
+                personalEmail: g.email ? String(g.email).trim() : `${g.dni}@eduportal.pe`,
+                phone: g.phone ? String(g.phone).trim() : '',
+                enabled: true
+              });
+            }
+            guardianPersonId = gp._id;
+          }
+
+          // RN-ACT-02: Validar apoderados con comprobación segura de IDs válidos
+          if (guardianPersonId && person && String(guardianPersonId) === String(person)) {
             res.status(400).json({
               success: false,
               message: 'Regla de negocio: El alumno no puede ser su propio apoderado'
             });
             return;
           }
+
+          if (guardianPersonId) {
+            resolvedGuardians.push({
+              person: guardianPersonId,
+              relationship: g.relationship || 'PADRE',
+              isPrimary: Boolean(g.isPrimary)
+            });
+          }
         }
       }
 
-      const data = await StudentModel.create(req.body);
-      const populated = await StudentModel.findById(data.id).populate('person').populate('guardians.person');
+      // 3. Generar código correlativo STU-XXX si no se especificó
+      if (!code) {
+        const studentCount = await StudentModel.countDocuments();
+        code = `STU-${String(studentCount + 1).padStart(3, '0')}`;
+      }
+
+      const data = await StudentModel.create({
+        code,
+        person,
+        guardians: resolvedGuardians,
+        entryYear: entryYear || '2026',
+        enabled: enabled !== undefined ? enabled : true
+      });
+
+      const populated = await StudentModel.findById(data.id)
+        .populate('person')
+        .populate('guardians.person');
+
       res.status(201).json({ success: true, message: 'Estudiante registrado', data: populated });
     } catch (err: any) {
       res.status(400).json({ success: false, message: err.message });
@@ -92,7 +168,7 @@ export class StudentController {
       const { person, guardians } = req.body;
       if (Array.isArray(guardians) && person) {
         for (const g of guardians) {
-          if (String(g.person) === String(person)) {
+          if (g.person && person && String(g.person) === String(person)) {
             res.status(400).json({
               success: false,
               message: 'Regla de negocio: El alumno no puede ser su propio apoderado'
