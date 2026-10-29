@@ -44,6 +44,38 @@ export const INITIAL_RULES = [
       { year: '2027', value: 40 }
     ],
     enabled: true
+  },
+  {
+    code: 'RUL-004',
+    key: 'EVALUATION_PERIODS',
+    name: 'Periodos de Evaluación Escolar y Candados',
+    description: 'Configuración de periodos bimestrales o trimestrales con candados isOpen para el registro de notas MINEDU',
+    isAnnual: true,
+    dataType: 'OBJECT',
+    value: {
+      periods: [
+        { period: 1, name: 'Bimestre 1', weight: 25, isOpen: true },
+        { period: 2, name: 'Bimestre 2', weight: 25, isOpen: true },
+        { period: 3, name: 'Bimestre 3', weight: 25, isOpen: false },
+        { period: 4, name: 'Bimestre 4', weight: 25, isOpen: false }
+      ]
+    },
+    enabled: true
+  },
+  {
+    code: 'RUL-005',
+    key: 'GRADING_SCALE',
+    name: 'Escala de Calificación Oficial MINEDU',
+    description: 'Escala vigesimal (0 a 20) con nota mínima aprobatoria 11',
+    isAnnual: false,
+    dataType: 'OBJECT',
+    value: {
+      minScore: 0,
+      maxScore: 20,
+      passingScore: 11,
+      type: 'VIGESIMAL'
+    },
+    enabled: true
   }
 ];
 
