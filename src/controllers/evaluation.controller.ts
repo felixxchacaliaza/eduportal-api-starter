@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { EvaluationModel } from '../models/evaluation.model.js';
 import { RuleModel } from '../models/rule.model.js';
+import { EnrollmentModel } from '../models/enrollment.model.js';
+import { TeacherAssignmentModel } from '../models/teacher-assignment.model.js';
+import { GradeSectionModel } from '../models/grade-section.model.js';
 
 export class EvaluationController {
   static async getAll(req: Request, res: Response): Promise<void> {
@@ -52,6 +55,65 @@ export class EvaluationController {
       if (gradeSection) filter.gradeSection = gradeSection;
       if (subject) filter.subject = subject;
       if (academicYear) filter.academicYear = academicYear;
+
+      // 1. Obtener todas las matrículas activas del salón
+      if (gradeSection) {
+        const enrollments = await EnrollmentModel.find({
+          gradeSection,
+          status: 'MATRICULADO',
+          ...(academicYear ? { academicYear } : {})
+        }).populate({
+          path: 'student',
+          populate: 'person'
+        });
+
+        // 2. Obtener la regla de periodos para inicializar periodos en blanco
+        const rulePeriods = await RuleModel.findOne({ code: 'RUL-004' });
+        const periodsConfig = rulePeriods?.value?.periods || [
+          { period: 1 }, { period: 2 }, { period: 3 }, { period: 4 }
+        ];
+
+        // 3. Obtener docente asignado (o tutor del salón)
+        let teacherId: any = null;
+        if (subject) {
+          const assignment = await TeacherAssignmentModel.findOne({ gradeSection, subject });
+          if (assignment?.teacher) teacherId = assignment.teacher;
+        }
+        if (!teacherId) {
+          const gs = await GradeSectionModel.findById(gradeSection);
+          if (gs?.tutor) teacherId = gs.tutor;
+        }
+
+        // 4. Asegurar que cada alumno matriculado tenga su acta de evaluación
+        for (const enr of enrollments) {
+          if (!enr.student) continue;
+          const studentId = (enr.student as any)._id || enr.student;
+          const existing = await EvaluationModel.findOne({
+            gradeSection,
+            subject: subject || null,
+            student: studentId,
+            ...(academicYear ? { academicYear } : {})
+          });
+
+          if (!existing && subject) {
+            const count = await EvaluationModel.countDocuments();
+            const code = 'EVA-' + String(count + 1).padStart(3, '0');
+            await EvaluationModel.create({
+              code,
+              academicYear: academicYear || enr.academicYear || '2026',
+              enrollment: enr._id,
+              student: studentId,
+              gradeSection,
+              subject,
+              teacher: teacherId,
+              periods: periodsConfig.map((p: any) => ({ period: p.period, score: null })),
+              finalAverage: null,
+              status: 'EN_CURSO',
+              enabled: true
+            });
+          }
+        }
+      }
 
       const data = await EvaluationModel.find(filter)
         .populate({
